@@ -1,22 +1,20 @@
 # -*- coding: utf-8 -*-
 """
-נקודת הכניסה לפרויקט — מריץ את ה-Flow המלא
+Entry point — runs the full CrewAI Flow.
 """
 
 import logging
 import sys
-from pathlib import Path
 
 from dotenv import load_dotenv
 
-# טוען משתני סביבה לפני כל דבר אחר
 load_dotenv()
 
 from config import LOG_PATH, LOG_FORMAT, LOG_DATE_FORMAT, OUTPUTS_DIR, LOGS_DIR
 
 
 def setup_logging() -> logging.Logger:
-    """מגדיר לוגים לקונסול ולקובץ במקביל."""
+    """Configure logging to both console and file."""
     LOGS_DIR.mkdir(exist_ok=True)
     OUTPUTS_DIR.mkdir(exist_ok=True)
 
@@ -33,17 +31,17 @@ def setup_logging() -> logging.Logger:
 
 
 def main() -> None:
-    """מריץ את הפרויקט המלא."""
+    """Run the full analytics pipeline."""
     logger = setup_logging()
-    logger.info("=== AI Retail Analytics Platform — מתחיל ===")
+    logger.info("=== AI Course Analytics Platform — Starting ===")
 
     try:
         from flow import RetailAnalyticsFlow
         flow = RetailAnalyticsFlow()
         flow.kickoff()
-        logger.info("=== הרצה הושלמה בהצלחה ===")
+        logger.info("=== Run completed successfully ===")
     except Exception as exc:
-        logger.error(f"שגיאה קריטית: {exc}", exc_info=True)
+        logger.error(f"Critical error: {exc}", exc_info=True)
         sys.exit(1)
 
 

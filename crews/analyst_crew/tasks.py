@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-Tasks של Crew 1 — הסוכנים מקבלים נתונים מוכנים ועושים רק ניתוח טקסטואלי.
-כך חוסכים tokens ומגיעים לתוצאות מהירות ויציבות.
+Tasks for Crew 1 — agents receive pre-computed data and write text analysis only.
+This keeps LLM token usage low and results fast and reliable.
 """
 
 import json
@@ -10,7 +10,6 @@ from crewai import Task
 from crewai.agent import Agent
 from config import (
     CLEAN_DATA_PATH,
-    DATASET_CONTRACT_PATH,
     EDA_REPORT_PATH,
     INSIGHTS_PATH,
     OUTPUTS_DIR,
@@ -26,10 +25,8 @@ from tools.viz_tools import (
 )
 
 
-# ── עוזר: מריץ pipeline ומכין סיכום קצר לסוכן ──────────────────────────────
-
 def _prepare_data_summary() -> str:
-    """מריץ את ה-pipeline ומחזיר סיכום קצר לסוכן."""
+    """Run the pipeline and return a short summary for the agent."""
     df = run_data_pipeline()
     summary = {
         "rows": len(df),
@@ -44,7 +41,7 @@ def _prepare_data_summary() -> str:
 
 
 def _build_eda_html(df: pd.DataFrame) -> None:
-    """בונה דוח HTML מלא עם גרפים ושומר לקובץ."""
+    """Build a full HTML report with embedded charts and save to file."""
     charts = (
         plot_price_distribution(df)
         + plot_subscribers_by_category(df)
@@ -54,75 +51,46 @@ def _build_eda_html(df: pd.DataFrame) -> None:
         + plot_rating_distribution(df)
     )
 
-    stats = df[["price", "num_subscribers", "avg_rating",
-                "num_reviews", "num_lectures"]].describe().round(2)
+    stats      = df[["price", "num_subscribers", "avg_rating",
+                      "num_reviews", "num_lectures"]].describe().round(2)
     stats_html = stats.to_html(classes="stats-table", border=0)
 
     html = f"""<!DOCTYPE html>
-<html lang="he" dir="rtl">
+<html lang="en">
 <head>
   <meta charset="UTF-8"/>
   <title>Udemy EDA Report</title>
   <style>
-    body {{ font-family: 'Segoe UI', sans-serif; background:#f8f9fa;
-            color:#333; margin:0; padding:20px; }}
-    h1   {{ background: linear-gradient(135deg,#667eea,#764ba2);
-            color:#fff; padding:30px; border-radius:12px; text-align:center; }}
-    h2   {{ color:#667eea; border-bottom:2px solid #667eea;
-            padding-bottom:8px; margin-top:40px; }}
-    h3   {{ color:#555; }}
-    .chart-block {{ background:#fff; border-radius:12px;
-                    padding:20px; margin:20px 0;
-                    box-shadow:0 2px 12px rgba(0,0,0,.08); }}
-    .chart-block img {{ width:100%; border-radius:8px; }}
-    .stats-table {{ width:100%; border-collapse:collapse; font-size:14px; }}
-    .stats-table th {{ background:#667eea; color:#fff; padding:10px; }}
-    .stats-table td {{ padding:8px; border:1px solid #e0e0e0; text-align:center; }}
-    .stats-table tr:nth-child(even) {{ background:#f0f0f0; }}
-    .kpi-grid {{ display:grid; grid-template-columns:repeat(3,1fr); gap:16px;
-                 margin:20px 0; }}
-    .kpi {{ background:#fff; border-radius:12px; padding:20px; text-align:center;
-            box-shadow:0 2px 12px rgba(0,0,0,.08); }}
+    body        {{ font-family:'Segoe UI',sans-serif; background:#f8f9fa; color:#333; margin:0; padding:20px; }}
+    h1          {{ background:linear-gradient(135deg,#667eea,#764ba2); color:#fff; padding:30px; border-radius:12px; text-align:center; }}
+    h2          {{ color:#667eea; border-bottom:2px solid #667eea; padding-bottom:8px; margin-top:40px; }}
+    h3          {{ color:#555; }}
+    .chart-block{{ background:#fff; border-radius:12px; padding:20px; margin:20px 0; box-shadow:0 2px 12px rgba(0,0,0,.08); }}
+    .chart-block img{{ width:100%; border-radius:8px; }}
+    .stats-table{{ width:100%; border-collapse:collapse; font-size:14px; }}
+    .stats-table th{{ background:#667eea; color:#fff; padding:10px; }}
+    .stats-table td{{ padding:8px; border:1px solid #e0e0e0; text-align:center; }}
+    .stats-table tr:nth-child(even){{ background:#f0f0f0; }}
+    .kpi-grid   {{ display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin:20px 0; }}
+    .kpi        {{ background:#fff; border-radius:12px; padding:20px; text-align:center; box-shadow:0 2px 12px rgba(0,0,0,.08); }}
     .kpi .value {{ font-size:2em; font-weight:700; color:#667eea; }}
     .kpi .label {{ color:#888; font-size:.9em; margin-top:4px; }}
   </style>
 </head>
 <body>
   <h1>🎓 Udemy Courses — EDA Report</h1>
-
   <div class="kpi-grid">
-    <div class="kpi">
-      <div class="value">{len(df):,}</div>
-      <div class="label">סה"כ קורסים</div>
-    </div>
-    <div class="kpi">
-      <div class="value">{df['category'].nunique()}</div>
-      <div class="label">קטגוריות</div>
-    </div>
-    <div class="kpi">
-      <div class="value">{df['avg_rating'].mean():.2f} ★</div>
-      <div class="label">דירוג ממוצע</div>
-    </div>
-    <div class="kpi">
-      <div class="value">${df['price'].mean():.0f}</div>
-      <div class="label">מחיר ממוצע</div>
-    </div>
-    <div class="kpi">
-      <div class="value">{df['num_subscribers'].mean():,.0f}</div>
-      <div class="label">מנויים ממוצע</div>
-    </div>
-    <div class="kpi">
-      <div class="value">{df['is_popular'].mean()*100:.0f}%</div>
-      <div class="label">קורסים פופולריים</div>
-    </div>
+    <div class="kpi"><div class="value">{len(df):,}</div><div class="label">Total Courses</div></div>
+    <div class="kpi"><div class="value">{df['category'].nunique()}</div><div class="label">Categories</div></div>
+    <div class="kpi"><div class="value">{df['avg_rating'].mean():.2f} ★</div><div class="label">Average Rating</div></div>
+    <div class="kpi"><div class="value">${df['price'].mean():.0f}</div><div class="label">Average Price</div></div>
+    <div class="kpi"><div class="value">{df['num_subscribers'].mean():,.0f}</div><div class="label">Avg Subscribers</div></div>
+    <div class="kpi"><div class="value">{df['is_popular'].mean()*100:.0f}%</div><div class="label">Popular Courses</div></div>
   </div>
-
-  <h2>📊 סטטיסטיקות בסיסיות</h2>
+  <h2>Basic Statistics</h2>
   <div class="chart-block">{stats_html}</div>
-
-  <h2>📈 גרפים</h2>
+  <h2>Charts</h2>
   {charts}
-
 </body>
 </html>"""
 
@@ -130,17 +98,14 @@ def _build_eda_html(df: pd.DataFrame) -> None:
     EDA_REPORT_PATH.write_text(html, encoding="utf-8")
 
 
-# ── Task builders ────────────────────────────────────────────────────────────
-
 def build_data_engineering_task(agent: Agent) -> Task:
-    """Task 1 — הסוכן מקבל סיכום נתונים ומאשר את הניקוי."""
+    """Task 1 — agent receives data summary and writes a quality report."""
     data_summary = _prepare_data_summary()
-
     return Task(
         description=(
             f"The data pipeline has already run. Here is the summary:\n\n"
             f"{data_summary}\n\n"
-            f"Your job: Write a professional data quality report confirming:\n"
+            f"Write a professional data quality report confirming:\n"
             f"1. The dataset was loaded and cleaned successfully\n"
             f"2. Key statistics (rows, columns, missing values handled)\n"
             f"3. The target variable 'is_popular' distribution\n"
@@ -156,12 +121,19 @@ def build_data_engineering_task(agent: Agent) -> Task:
 
 
 def build_eda_task(agent: Agent, context_tasks: list) -> Task:
-    """Task 2 — בונה HTML מהקוד ומבקש מהסוכן לכתוב תקציר."""
+    """Task 2 — builds HTML from code, asks agent for a written summary."""
     df = pd.read_csv(CLEAN_DATA_PATH)
     _build_eda_html(df)
 
-    top_cats = df.groupby("category")["num_subscribers"].mean().sort_values(ascending=False).head(5)
-    top_cats_str = "\n".join([f"- {k}: {v:,.0f} avg subscribers" for k, v in top_cats.items()])
+    top_cats = (
+        df.groupby("category")["num_subscribers"]
+        .mean()
+        .sort_values(ascending=False)
+        .head(5)
+    )
+    top_cats_str = "\n".join(
+        [f"- {k}: {v:,.0f} avg subscribers" for k, v in top_cats.items()]
+    )
 
     return Task(
         description=(
@@ -183,15 +155,14 @@ def build_eda_task(agent: Agent, context_tasks: list) -> Task:
 
 
 def build_insights_task(agent: Agent, context_tasks: list) -> Task:
-    """Task 3 — הסוכן כותב תובנות עסקיות ושומר לקובץ."""
+    """Task 3 — agent writes business insights in structured Markdown."""
     df = pd.read_csv(CLEAN_DATA_PATH)
 
-    # מחשבים סטטיסטיקות מהקוד — לא מה-LLM
-    best_price  = df[df["is_popular"] == 1]["price"].mode().iloc[0] if len(df) > 0 else "N/A"
-    best_cat    = df.groupby("category")["num_subscribers"].mean().idxmax()
-    best_month  = df.groupby("publish_month")["num_subscribers"].mean().idxmax()
-    free_avg    = df[df["is_paid"] == False]["num_subscribers"].mean()
-    paid_avg    = df[df["is_paid"] == True]["num_subscribers"].mean()
+    best_price = df[df["is_popular"] == 1]["price"].mode().iloc[0] if len(df) > 0 else "N/A"
+    best_cat   = df.groupby("category")["num_subscribers"].mean().idxmax()
+    best_month = df.groupby("publish_month")["num_subscribers"].mean().idxmax()
+    free_avg   = df[df["is_paid"] == False]["num_subscribers"].mean()
+    paid_avg   = df[df["is_paid"] == True]["num_subscribers"].mean()
 
     context_str = (
         f"Key statistics:\n"
@@ -214,8 +185,8 @@ def build_insights_task(agent: Agent, context_tasks: list) -> Task:
             f"Save this content to {INSIGHTS_PATH}"
         ),
         expected_output=(
-            "A markdown insights report saved to insights.md with: "
-            "executive summary, 5 findings, 5 recommendations, metrics table."
+            "A markdown insights report with: executive summary, "
+            "5 findings, 5 recommendations, and a metrics table."
         ),
         agent=agent,
         context=context_tasks,

@@ -28,14 +28,14 @@ logger = logging.getLogger(__name__)
 
 
 def build_scientist_crew() -> Crew:
-    """בונה ומחזיר את ה-Scientist Crew."""
-    feature_engineer   = build_feature_engineer()
-    ml_engineer        = build_ml_engineer()
-    ethics_specialist  = build_ethics_specialist()
+    """Build and return the Scientist Crew."""
+    feature_engineer  = build_feature_engineer()
+    ml_engineer       = build_ml_engineer()
+    ethics_specialist = build_ethics_specialist()
 
-    task_features  = build_feature_engineering_task(feature_engineer)
-    task_ml        = build_ml_training_task(ml_engineer, [task_features])
-    task_card      = build_model_card_task(ethics_specialist, [task_features, task_ml])
+    task_features = build_feature_engineering_task(feature_engineer)
+    task_ml       = build_ml_training_task(ml_engineer, [task_features])
+    task_card     = build_model_card_task(ethics_specialist, [task_features, task_ml])
 
     crew = Crew(
         agents=[feature_engineer, ml_engineer, ethics_specialist],
@@ -44,21 +44,20 @@ def build_scientist_crew() -> Crew:
         verbose=CREW_VERBOSE,
     )
 
-    logger.info("Scientist Crew נבנה בהצלחה")
+    logger.info("Scientist Crew built successfully")
     return crew
 
 
 def run_scientist_crew() -> dict:
-    """מריץ את Crew 2 ומחזיר תוצאות."""
-    logger.info("=== מתחיל Crew 2: Data Scientist Crew ===")
+    """Run Crew 2 and return results."""
+    logger.info("=== Starting Crew 2: Data Scientist Crew ===")
     crew   = build_scientist_crew()
     result = crew.kickoff()
 
-    # שומר את ה-model card מתוצאת הסוכן האחרון
     OUTPUTS_DIR.mkdir(exist_ok=True)
     MODEL_CARD_PATH.write_text(str(result), encoding="utf-8")
-    logger.info(f"model_card.md נשמר: {MODEL_CARD_PATH}")
-    logger.info("=== Crew 2 הושלם ===")
+    logger.info(f"model_card.md saved: {MODEL_CARD_PATH}")
+    logger.info("=== Crew 2 complete ===")
     return {"crew2_result": str(result)}
 
 

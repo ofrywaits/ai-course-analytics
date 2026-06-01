@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-שלושת הסוכנים של Crew 1 — Data Analyst Crew.
-כל סוכן אחראי על תחום ידע אחד בלבד.
+Three agents for Crew 1 — Data Analyst Crew.
+Each agent is responsible for exactly one domain.
 """
 
 import os
@@ -10,7 +10,7 @@ from config import LLM_MODEL, CREW_MAX_ITER
 
 
 def _build_llm() -> LLM:
-    """בונה את ה-LLM עם Groq — מגדיר את המשתנה הסביבה שCrewAI מצפה לו."""
+    """Build the LLM with Groq credentials."""
     api_key = os.getenv("GROQ_API_KEY", "")
     os.environ["GROQ_API_KEY"] = api_key
     return LLM(
@@ -22,7 +22,7 @@ def _build_llm() -> LLM:
 
 
 def build_data_engineer() -> Agent:
-    """סוכן 1 — אחראי על טעינה וניקוי הנתונים."""
+    """Agent 1 — responsible for loading and cleaning the data."""
     return Agent(
         role="Senior Data Engineer",
         goal=(
@@ -32,7 +32,7 @@ def build_data_engineer() -> Agent:
         ),
         backstory=(
             "You are a meticulous data engineer with 10 years of experience "
-            "in building reliable data pipelines. You never pass dirty data "
+            "building reliable data pipelines. You never pass dirty data "
             "to downstream processes — quality is your top priority."
         ),
         llm=_build_llm(),
@@ -43,7 +43,7 @@ def build_data_engineer() -> Agent:
 
 
 def build_data_analyst() -> Agent:
-    """סוכן 2 — אחראי על EDA וגרפים."""
+    """Agent 2 — responsible for EDA and visualizations."""
     return Agent(
         role="Senior Business Data Analyst",
         goal=(
@@ -65,7 +65,7 @@ def build_data_analyst() -> Agent:
 
 
 def build_bi_analyst() -> Agent:
-    """סוכן 3 — אחראי על תובנות עסקיות."""
+    """Agent 3 — responsible for business insights."""
     return Agent(
         role="Business Intelligence Analyst",
         goal=(

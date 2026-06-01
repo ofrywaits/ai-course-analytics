@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-Tasks של Crew 2 — Python עושה את העבודה הכבדה, LLM כותב את הניתוח.
+Tasks for Crew 2 — Python handles the heavy lifting, LLM writes the analysis.
 """
 
+import re
 import pandas as pd
 from crewai import Task
 from crewai.agent import Agent
@@ -18,8 +19,8 @@ from tools.model_tools import run_ml_pipeline
 
 
 def build_feature_engineering_task(agent: Agent) -> Task:
-    """Task 4 — הנדסת features + סיכום מהסוכן."""
-    metrics = run_ml_pipeline()   # מריץ הכל מראש — Python עושה את העבודה
+    """Task 4 — runs ML pipeline then asks agent for a written report."""
+    metrics = run_ml_pipeline()
 
     feat_summary = (
         f"Features dataset saved to {FEATURES_PATH}.\n"
@@ -48,9 +49,11 @@ def build_feature_engineering_task(agent: Agent) -> Task:
 
 
 def build_ml_training_task(agent: Agent, context_tasks: list) -> Task:
-    """Task 5 — ניתוח תוצאות המודל."""
-    eval_content = EVALUATION_REPORT_PATH.read_text(encoding="utf-8") \
+    """Task 5 — agent analyses the pre-built evaluation report."""
+    eval_content = (
+        EVALUATION_REPORT_PATH.read_text(encoding="utf-8")
         if EVALUATION_REPORT_PATH.exists() else "No report yet."
+    )
 
     return Task(
         description=(
@@ -64,7 +67,7 @@ def build_ml_training_task(agent: Agent, context_tasks: list) -> Task:
         ),
         expected_output=(
             "A model analysis report under 300 words with business interpretation "
-            "of the results and deployment recommendation."
+            "of the results and a deployment recommendation."
         ),
         agent=agent,
         context=context_tasks,
@@ -72,14 +75,15 @@ def build_ml_training_task(agent: Agent, context_tasks: list) -> Task:
 
 
 def build_model_card_task(agent: Agent, context_tasks: list) -> Task:
-    """Task 6 — כתיבת Model Card מלא ושמירתו."""
-    eval_content = EVALUATION_REPORT_PATH.read_text(encoding="utf-8") \
+    """Task 6 — agent writes and saves a complete Model Card."""
+    eval_content = (
+        EVALUATION_REPORT_PATH.read_text(encoding="utf-8")
         if EVALUATION_REPORT_PATH.exists() else ""
+    )
 
-    import re
-    acc_match = re.search(r"Test Accuracy \| ([0-9.]+)", eval_content)
-    accuracy  = acc_match.group(1) if acc_match else "N/A"
+    acc_match   = re.search(r"Test Accuracy \| ([0-9.]+)", eval_content)
     model_match = re.search(r"Best Model \| (.+)", eval_content)
+    accuracy    = acc_match.group(1)   if acc_match   else "N/A"
     model_name  = model_match.group(1).strip() if model_match else "Unknown"
 
     return Task(

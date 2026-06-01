@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-שלושת הסוכנים של Crew 2 — Data Scientist Crew.
+Three agents for Crew 2 — Data Scientist Crew.
 """
 
 import os
@@ -9,6 +9,7 @@ from config import LLM_MODEL, CREW_MAX_ITER
 
 
 def _build_llm() -> LLM:
+    """Build the LLM with Groq credentials."""
     api_key = os.getenv("GROQ_API_KEY", "")
     os.environ["GROQ_API_KEY"] = api_key
     return LLM(
@@ -20,7 +21,7 @@ def _build_llm() -> LLM:
 
 
 def build_feature_engineer() -> Agent:
-    """סוכן 4 — הנדסת features."""
+    """Agent 4 — feature engineering."""
     return Agent(
         role="Senior Feature Engineer",
         goal=(
@@ -41,7 +42,7 @@ def build_feature_engineer() -> Agent:
 
 
 def build_ml_engineer() -> Agent:
-    """סוכן 5 — אימון ובחירת מודל."""
+    """Agent 5 — model training and selection."""
     return Agent(
         role="Senior Machine Learning Engineer",
         goal=(
@@ -62,7 +63,7 @@ def build_ml_engineer() -> Agent:
 
 
 def build_ethics_specialist() -> Agent:
-    """סוכן 6 — Model Card ואתיקה."""
+    """Agent 6 — Model Card and AI ethics."""
     return Agent(
         role="AI Ethics and Documentation Specialist",
         goal=(
