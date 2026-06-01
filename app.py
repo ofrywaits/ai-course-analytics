@@ -57,15 +57,18 @@ st.markdown("""
 
 @st.cache_data
 def load_clean_data() -> pd.DataFrame:
+    """Load the cleaned dataset from CSV. Returns empty DataFrame if not found."""
     return pd.read_csv(CLEAN_CSV) if CLEAN_CSV.exists() else pd.DataFrame()
 
 
 @st.cache_resource
-def load_model():
+def load_model() -> object:
+    """Load the trained sklearn model from disk. Returns None if not found."""
     return joblib.load(MODEL_PKL) if MODEL_PKL.exists() else None
 
 
-def kpi(value: str, label: str):
+def kpi(value: str, label: str) -> None:
+    """Render a KPI card with a prominent value and a small label."""
     st.markdown(
         f'<div class="kpi-card">'
         f'<div class="kpi-value">{value}</div>'
@@ -75,7 +78,8 @@ def kpi(value: str, label: str):
     )
 
 
-def file_status(path: Path, name: str):
+def file_status(path: Path, name: str) -> None:
+    """Show a green ✅ with file size or a red ❌ for a missing output file."""
     if path.exists():
         size = path.stat().st_size / 1024
         st.markdown(f'<span class="status-ok">✅ {name}</span> ({size:.1f} KB)',
@@ -111,7 +115,8 @@ if run_clicked:
             (100, "✅ Complete!"),
         ]
 
-        def run_flow():
+        def run_flow() -> subprocess.Popen:
+            """Launch main.py as a subprocess and return the process handle."""
             import os
             from dotenv import load_dotenv
             load_dotenv()
@@ -254,6 +259,30 @@ with tab3:
             st.divider()
             st.subheader("📋 Model Card")
             st.markdown(MODEL_CARD.read_text(encoding="utf-8"))
+
+        # ── Confusion Matrix ──────────────────────────────────────────────────
+        cm_match = re.search(
+            r"Actual 0 \| (\d+) \| (\d+).*?Actual 1 \| (\d+) \| (\d+)",
+            EVAL_MD.read_text(encoding="utf-8") if EVAL_MD.exists() else "",
+            re.DOTALL,
+        )
+        if cm_match:
+            tn, fp, fn, tp = [int(cm_match.group(i)) for i in range(1, 5)]
+            st.divider()
+            st.subheader("🔢 Confusion Matrix")
+            cm_df = pd.DataFrame(
+                [[tn, fp], [fn, tp]],
+                index=["Actual: Not Popular", "Actual: Popular"],
+                columns=["Predicted: Not Popular", "Predicted: Popular"],
+            )
+            fig_cm = px.imshow(
+                cm_df,
+                text_auto=True,
+                color_continuous_scale="Blues",
+                title="Confusion Matrix — Popularity Prediction",
+            )
+            fig_cm.update_layout(height=350)
+            st.plotly_chart(fig_cm, use_container_width=True)
 
         if not df.empty and hasattr(model, "feature_importances_"):
             st.divider()
