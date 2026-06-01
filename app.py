@@ -262,16 +262,14 @@ with tab3:
                          if c not in ["is_popular", "title", "instructor_name",
                                        "published_time", "last_update_date",
                                        "num_subscribers"]]
-            importances = pd.Series(
-                model.feature_importances_[:len(feat_cols)],
-                index=feat_cols[:len(model.feature_importances_)]
-            ).sort_values(ascending=False).head(10)
+            fi_df = pd.DataFrame({
+                "Feature":    feat_cols[:len(model.feature_importances_)],
+                "Importance": model.feature_importances_[:len(feat_cols)],
+            }).sort_values("Importance", ascending=False).head(10)
             fig_fi = px.bar(
-                importances.reset_index(),
-                x="importance", y="index",
+                fi_df, x="Importance", y="Feature",
                 orientation="h",
-                labels={"index": "Feature", "importance": "Importance"},
-                color="importance", color_continuous_scale="Purples",
+                color="Importance", color_continuous_scale="Purples",
             )
             fig_fi.update_layout(showlegend=False)
             st.plotly_chart(fig_fi, use_container_width=True)
