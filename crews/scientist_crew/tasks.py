@@ -3,10 +3,13 @@
 Tasks for Crew 2 — Python handles the heavy lifting, LLM writes the analysis.
 """
 
+import logging
 import re
 import pandas as pd
 from crewai import Task
 from crewai.agent import Agent
+
+logger = logging.getLogger(__name__)
 
 from config import (
     FEATURES_PATH,
@@ -20,7 +23,12 @@ from tools.model_tools import run_ml_pipeline
 
 def build_feature_engineering_task(agent: Agent) -> Task:
     """Task 4 — runs ML pipeline then asks agent for a written report."""
-    metrics = run_ml_pipeline()
+    logger.info("Running ML pipeline for Task 4...")
+    try:
+        metrics = run_ml_pipeline()
+    except Exception as e:
+        logger.error(f"ML pipeline failed: {e}")
+        raise
 
     feat_summary = (
         f"Features dataset saved to {FEATURES_PATH}.\n"
@@ -50,10 +58,14 @@ def build_feature_engineering_task(agent: Agent) -> Task:
 
 def build_ml_training_task(agent: Agent, context_tasks: list) -> Task:
     """Task 5 — agent analyses the pre-built evaluation report."""
-    eval_content = (
-        EVALUATION_REPORT_PATH.read_text(encoding="utf-8")
-        if EVALUATION_REPORT_PATH.exists() else "No report yet."
-    )
+    try:
+        eval_content = (
+            EVALUATION_REPORT_PATH.read_text(encoding="utf-8")
+            if EVALUATION_REPORT_PATH.exists() else "No report yet."
+        )
+    except OSError as e:
+        logger.error(f"Failed to read evaluation report: {e}")
+        eval_content = "No report yet."
 
     return Task(
         description=(
@@ -76,10 +88,14 @@ def build_ml_training_task(agent: Agent, context_tasks: list) -> Task:
 
 def build_model_card_task(agent: Agent, context_tasks: list) -> Task:
     """Task 6 — agent writes and saves a complete Model Card."""
-    eval_content = (
-        EVALUATION_REPORT_PATH.read_text(encoding="utf-8")
-        if EVALUATION_REPORT_PATH.exists() else ""
-    )
+    try:
+        eval_content = (
+            EVALUATION_REPORT_PATH.read_text(encoding="utf-8")
+            if EVALUATION_REPORT_PATH.exists() else ""
+        )
+    except OSError as e:
+        logger.error(f"Failed to read evaluation report: {e}")
+        eval_content = ""
 
     acc_match   = re.search(r"Test Accuracy \| ([0-9.]+)", eval_content)
     model_match = re.search(r"Best Model \| (.+)", eval_content)

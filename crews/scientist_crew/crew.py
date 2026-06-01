@@ -55,8 +55,12 @@ def run_scientist_crew() -> dict:
     result = crew.kickoff()
 
     OUTPUTS_DIR.mkdir(exist_ok=True)
-    MODEL_CARD_PATH.write_text(str(result), encoding="utf-8")
-    logger.info(f"model_card.md saved: {MODEL_CARD_PATH}")
+    try:
+        MODEL_CARD_PATH.write_text(str(result), encoding="utf-8")
+        logger.info(f"model_card.md saved: {MODEL_CARD_PATH}")
+    except OSError as e:
+        logger.error(f"Failed to save model_card.md: {e}")
+        raise
     logger.info("=== Crew 2 complete ===")
     return {"crew2_result": str(result)}
 
