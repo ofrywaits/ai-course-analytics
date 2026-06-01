@@ -5,9 +5,12 @@ This keeps LLM token usage low and results fast and reliable.
 """
 
 import json
+import logging
 import pandas as pd
 from crewai import Task
 from crewai.agent import Agent
+
+logger = logging.getLogger(__name__)
 from config import (
     CLEAN_DATA_PATH,
     EDA_REPORT_PATH,
@@ -26,8 +29,13 @@ from tools.viz_tools import (
 
 
 def _prepare_data_summary() -> str:
-    """Run the pipeline and return a short summary for the agent."""
-    df = run_data_pipeline()
+    """Run the data pipeline and return a JSON summary string for the agent."""
+    logger.info("Running data pipeline for Task 1 summary...")
+    try:
+        df = run_data_pipeline()
+    except Exception as e:
+        logger.error(f"Data pipeline failed: {e}")
+        raise
     summary = {
         "rows": len(df),
         "columns": list(df.columns),
@@ -37,6 +45,7 @@ def _prepare_data_summary() -> str:
         "avg_rating": round(df["avg_rating"].mean(), 2),
         "popular_ratio": round(df["is_popular"].mean() * 100, 1),
     }
+    logger.info(f"Data summary ready — {len(df):,} rows")
     return json.dumps(summary, ensure_ascii=False, indent=2)
 
 
@@ -95,7 +104,12 @@ def _build_eda_html(df: pd.DataFrame) -> None:
 </html>"""
 
     OUTPUTS_DIR.mkdir(exist_ok=True)
-    EDA_REPORT_PATH.write_text(html, encoding="utf-8")
+    try:
+        EDA_REPORT_PATH.write_text(html, encoding="utf-8")
+        logger.info(f"EDA report saved: {EDA_REPORT_PATH}")
+    except OSError as e:
+        logger.error(f"Failed to save EDA report: {e}")
+        raise
 
 
 def build_data_engineering_task(agent: Agent) -> Task:
@@ -121,8 +135,13 @@ def build_data_engineering_task(agent: Agent) -> Task:
 
 
 def build_eda_task(agent: Agent, context_tasks: list) -> Task:
-    """Task 2 — builds HTML from code, asks agent for a written summary."""
-    df = pd.read_csv(CLEAN_DATA_PATH)
+    """Task 2 — builds HTML EDA report from code, asks agent for written summary."""
+    logger.info("Building EDA HTML report...")
+    try:
+        df = pd.read_csv(CLEAN_DATA_PATH)
+    except FileNotFoundError as e:
+        logger.error(f"clean_data.csv not found: {e}")
+        raise
     _build_eda_html(df)
 
     top_cats = (
@@ -155,8 +174,13 @@ def build_eda_task(agent: Agent, context_tasks: list) -> Task:
 
 
 def build_insights_task(agent: Agent, context_tasks: list) -> Task:
-    """Task 3 — agent writes business insights in structured Markdown."""
-    df = pd.read_csv(CLEAN_DATA_PATH)
+    """Task 3 — agent writes structured business insights from pre-computed stats."""
+    logger.info("Computing business insight statistics for Task 3...")
+    try:
+        df = pd.read_csv(CLEAN_DATA_PATH)
+    except FileNotFoundError as e:
+        logger.error(f"clean_data.csv not found: {e}")
+        raise
 
     best_price = df[df["is_popular"] == 1]["price"].mode().iloc[0] if len(df) > 0 else "N/A"
     best_cat   = df.groupby("category")["num_subscribers"].mean().idxmax()

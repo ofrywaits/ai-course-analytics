@@ -55,8 +55,12 @@ def run_analyst_crew() -> dict:
     result = crew.kickoff()
 
     OUTPUTS_DIR.mkdir(exist_ok=True)
-    INSIGHTS_PATH.write_text(str(result), encoding="utf-8")
-    logger.info(f"insights.md saved: {INSIGHTS_PATH}")
+    try:
+        INSIGHTS_PATH.write_text(str(result), encoding="utf-8")
+        logger.info(f"insights.md saved: {INSIGHTS_PATH}")
+    except OSError as e:
+        logger.error(f"Failed to save insights.md: {e}")
+        raise
     logger.info("=== Crew 1 complete ===")
     return {"crew1_result": str(result)}
 

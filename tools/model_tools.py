@@ -125,11 +125,15 @@ def train_and_compare(df: pd.DataFrame) -> tuple:
     return best_model, metrics
 
 
-def save_model(model) -> None:
-    """Save the trained model as a pkl file."""
+def save_model(model: object) -> None:
+    """Save the trained sklearn model as a pkl file."""
     OUTPUTS_DIR.mkdir(exist_ok=True)
-    joblib.dump(model, MODEL_PATH)
-    logger.info(f"model.pkl saved: {MODEL_PATH}")
+    try:
+        joblib.dump(model, MODEL_PATH)
+        logger.info(f"model.pkl saved: {MODEL_PATH}")
+    except OSError as e:
+        logger.error(f"Failed to save model: {e}")
+        raise
 
 
 def save_evaluation_report(metrics: dict) -> None:
@@ -179,9 +183,14 @@ def save_evaluation_report(metrics: dict) -> None:
 # ── Main Pipeline ────────────────────────────────────────────────────────────
 
 def run_ml_pipeline() -> dict:
-    """Run the full ML pipeline and return metrics."""
+    """Run the full ML pipeline and return metrics dict."""
     logger.info("=== Starting ML Pipeline ===")
-    df_clean    = pd.read_csv(CLEAN_DATA_PATH)
+    try:
+        df_clean = pd.read_csv(CLEAN_DATA_PATH)
+    except FileNotFoundError as e:
+        logger.error(f"clean_data.csv not found: {e}")
+        raise
+
     df_features = build_features(df_clean)
     save_features(df_features)
 
