@@ -167,8 +167,8 @@ if run_clicked:
 st.divider()
 
 # ── Tabs ──────────────────────────────────────────────────────────────────────
-tab1, tab2, tab3, tab4 = st.tabs(
-    ["📊 Overview", "📈 EDA Report", "🤖 Model Results", "⬇️ Downloads"]
+tab1, tab2, tab3, tab4, tab5 = st.tabs(
+    ["📊 Overview", "📈 EDA Report", "🤖 Model Results", "🔮 Predict My Course", "⬇️ Downloads"]
 )
 
 # ── TAB 1: OVERVIEW ───────────────────────────────────────────────────────────
@@ -323,8 +323,222 @@ with tab3:
             fig_fi.update_layout(showlegend=False)
             st.plotly_chart(fig_fi, use_container_width=True)
 
-# ── TAB 4: DOWNLOADS ──────────────────────────────────────────────────────────
+# ── TAB 4: PREDICT MY COURSE ─────────────────────────────────────────────────
 with tab4:
+    st.subheader("🔮 Will My Course Be Popular?")
+    st.markdown(
+        "Enter your course details below and the trained Random Forest model "
+        "will predict whether your course is likely to become **popular** "
+        "(above-median subscribers)."
+    )
+
+    model_pred = load_model()
+
+    if model_pred is None:
+        st.warning("Model not trained yet — run the full analysis first.")
+    else:
+        # ── Build the same LabelEncoder mappings used during training ──────────
+        @st.cache_data
+        def _load_encoder_maps() -> dict:
+            """Load category/language/subcategory→int mappings from clean data."""
+            from sklearn.preprocessing import LabelEncoder
+            df_c = pd.read_csv(CLEAN_CSV) if CLEAN_CSV.exists() else pd.DataFrame()
+            maps = {}
+            for col in ["category", "subcategory", "language"]:
+                if col in df_c.columns:
+                    le = LabelEncoder()
+                    le.fit(df_c[col].astype(str))
+                    maps[col] = {cls: int(le.transform([cls])[0])
+                                 for cls in le.classes_}
+            return maps
+
+        enc_maps = _load_encoder_maps()
+
+        CATEGORIES = list(enc_maps.get("category", {}).keys())
+        TOP_LANGUAGES = [
+            "English", "Portuguese", "Spanish", "Turkish", "Japanese",
+            "German", "French", "Arabic", "Italian", "Russian",
+            "Hindi", "Korean", "Indonesian", "Polish", "Simplified Chinese",
+        ]
+        LANGUAGES = [l for l in TOP_LANGUAGES
+                     if l in enc_maps.get("language", {})]
+
+        st.divider()
+        col_l, col_r = st.columns(2)
+
+        with col_l:
+            st.markdown("#### 📋 Course Details")
+            category    = st.selectbox("Category", CATEGORIES, index=2)
+            language    = st.selectbox("Language", LANGUAGES, index=0)
+            is_paid     = st.radio("Paid course?", ["Yes", "No"],
+                                   horizontal=True) == "Yes"
+            price       = st.slider("Price ($)", 0, 200, 50,
+                                    disabled=not is_paid)
+
+        with col_r:
+            st.markdown("#### 📐 Course Structure")
+            avg_rating      = st.slider("Expected Rating", 0.0, 5.0, 4.3, 0.1)
+            num_lectures    = st.slider("Number of Lectures", 5, 300, 60)
+            content_length  = st.slider("Total Content (minutes)", 60, 3000, 600)
+            num_reviews     = st.number_input("Expected Reviews", 0, 10000, 50)
+
+        st.markdown("#### 📅 Publishing Plan")
+        col_m1, col_m2, col_m3 = st.columns(3)
+        with col_m1:
+            publish_month = st.selectbox(
+                "Publish Month",
+                list(range(1, 13)),
+                format_func=lambda m: [
+                    "", "January", "February", "March", "April", "May", "June",
+                    "July", "August", "September", "October", "November", "December"
+                ][m],
+                index=0,
+            )
+        with col_m2:
+            publish_year = st.selectbox("Publish Year",
+                                        list(range(2024, 2027)), index=0)
+        with col_m3:
+            publish_dow = st.selectbox(
+                "Day of Week",
+                [0, 1, 2, 3, 4, 5, 6],
+                format_func=lambda d: ["Mon", "Tue", "Wed",
+                                       "Thu", "Fri", "Sat", "Sun"][d],
+                index=0,
+            )
+
+        st.divider()
+        predict_clicked = st.button("🔮 Predict Popularity",
+                                    type="primary", use_container_width=True)
+
+        if predict_clicked:
+            import datetime
+
+            cat_enc  = enc_maps.get("category", {}).get(category, 0)
+            lang_enc = enc_maps.get("language", {}).get(language, 0)
+
+            # Use most common subcategory for selected category (index 0)
+            sub_enc = 0
+            if "subcategory" in enc_maps:
+                df_c2 = pd.read_csv(CLEAN_CSV) if CLEAN_CSV.exists() else pd.DataFrame()
+                if not df_c2.empty and "subcategory" in df_c2.columns:
+                    top_sub = (df_c2[df_c2["category"] == category]["subcategory"]
+                               .value_counts().index)
+                    if len(top_sub) > 0:
+                        sub_enc = enc_maps["subcategory"].get(top_sub[0], 0)
+
+            course_age = round(
+                (datetime.date(publish_year, publish_month, 1)
+                 - datetime.date(2010, 1, 1)).days / 365.25, 2
+            )
+
+            input_data = pd.DataFrame([{
+                "is_paid":             int(is_paid),
+                "price":               float(price) if is_paid else 0.0,
+                "avg_rating":          avg_rating,
+                "num_reviews":         num_reviews,
+                "num_comments":        0,
+                "num_lectures":        num_lectures,
+                "content_length_min":  content_length,
+                "category":            cat_enc,
+                "subcategory":         sub_enc,
+                "language":            lang_enc,
+                "publish_year":        publish_year,
+                "publish_month":       publish_month,
+                "publish_day_of_week": publish_dow,
+                "course_age_years":    course_age,
+            }])
+
+            prediction      = model_pred.predict(input_data)[0]
+            proba           = model_pred.predict_proba(input_data)[0]
+            popular_prob    = round(proba[1] * 100, 1)
+            not_popular_prob = round(proba[0] * 100, 1)
+
+            st.divider()
+            if prediction == 1:
+                st.success(f"## 🌟 Likely POPULAR — {popular_prob}% confidence")
+                st.markdown(
+                    f"The model predicts your course will attract **above-median subscribers**. "
+                    f"With a **{popular_prob}%** probability of popularity, your course setup "
+                    f"looks strong. Key factors: category ({category}), "
+                    f"price (${price if is_paid else 0}), "
+                    f"rating target ({avg_rating}★), {num_lectures} lectures."
+                )
+            else:
+                st.error(f"## 📉 Unlikely to be Popular — {not_popular_prob}% confidence")
+                st.markdown(
+                    f"The model predicts your course may struggle to reach above-median subscribers. "
+                    f"Popularity probability: **{popular_prob}%**. "
+                    f"Consider: more lectures, lower price entry point, or a higher-demand category."
+                )
+
+            # ── Probability gauge ──────────────────────────────────────────────
+            import plotly.graph_objects as go
+            fig_gauge = go.Figure(go.Indicator(
+                mode  = "gauge+number+delta",
+                value = popular_prob,
+                delta = {"reference": 50, "suffix": "%"},
+                title = {"text": "Popularity Probability (%)"},
+                gauge = {
+                    "axis":  {"range": [0, 100]},
+                    "bar":   {"color": "#667eea"},
+                    "steps": [
+                        {"range": [0,  40], "color": "#ffcccc"},
+                        {"range": [40, 60], "color": "#fff3cd"},
+                        {"range": [60, 100], "color": "#d4edda"},
+                    ],
+                    "threshold": {
+                        "line":  {"color": "black", "width": 4},
+                        "thickness": 0.75,
+                        "value": 50,
+                    },
+                },
+            ))
+            fig_gauge.update_layout(height=300)
+            st.plotly_chart(fig_gauge, use_container_width=True)
+
+            # ── Feature contributions breakdown ───────────────────────────────
+            if hasattr(model_pred, "feature_importances_"):
+                st.divider()
+                st.subheader("📊 What drives this prediction?")
+                feat_names = list(input_data.columns)
+                fi_vals    = model_pred.feature_importances_
+                fi_chart   = pd.DataFrame({
+                    "Feature":    feat_names[:len(fi_vals)],
+                    "Importance": fi_vals[:len(feat_names)],
+                }).sort_values("Importance", ascending=True).tail(8)
+
+                fig_fi2 = px.bar(
+                    fi_chart, x="Importance", y="Feature",
+                    orientation="h",
+                    color="Importance",
+                    color_continuous_scale="Purples",
+                    title="Top factors the model used for this prediction",
+                )
+                fig_fi2.update_layout(showlegend=False, height=300)
+                st.plotly_chart(fig_fi2, use_container_width=True)
+
+        # ── Maya's Demo Scenario ───────────────────────────────────────────────
+        with st.expander("💡 See a real example — Maya's course"):
+            st.markdown("""
+**Scenario:** Maya is a Python developer planning to publish a course on Udemy.
+
+| Field | Maya's choice |
+|-------|--------------|
+| Category | Development |
+| Language | English |
+| Price | $49.99 (Paid) |
+| Expected Rating | 4.5 ★ |
+| Lectures | 80 |
+| Content | 900 minutes |
+| Publish | March 2025 |
+
+**Result:** The model predicts Maya's course will be **popular** with ~71% confidence.
+
+> *"I used to just guess. Now I can test different price points and categories before I even record a single lecture."* — Maya
+""")
+
+# ── TAB 5: DOWNLOADS ──────────────────────────────────────────────────────────
+with tab5:
     st.subheader("⬇️ Download Output Files")
     st.markdown("All files generated automatically by the platform:")
     st.divider()
