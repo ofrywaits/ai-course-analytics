@@ -35,6 +35,9 @@ def main() -> None:
     logger = setup_logging()
     logger.info("=== AI Course Analytics Platform — Starting ===")
 
+    from monitoring import log_system_info
+    log_system_info()
+
     try:
         from flow import RetailAnalyticsFlow
         flow = RetailAnalyticsFlow()
@@ -43,6 +46,12 @@ def main() -> None:
     except Exception as exc:
         logger.error(f"Critical error: {exc}", exc_info=True)
         sys.exit(1)
+
+    # Post-run health check — warns if any output file is missing
+    from monitoring import run_health_check
+    report = run_health_check()
+    if not report.all_ok:
+        logger.warning(f"Post-run health check: {report.summary()}")
 
 
 if __name__ == "__main__":
