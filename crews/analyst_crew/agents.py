@@ -4,9 +4,13 @@ Three agents for Crew 1 — Data Analyst Crew.
 Each agent is responsible for exactly one domain.
 """
 
+import logging
 import os
 from crewai import Agent, LLM
 from config import LLM_MODEL, CREW_MAX_ITER
+from tools.mcp_tools import get_mcp_file_tools
+
+logger = logging.getLogger(__name__)
 
 
 def _build_llm() -> LLM:
@@ -65,7 +69,17 @@ def build_data_analyst() -> Agent:
 
 
 def build_bi_analyst() -> Agent:
-    """Agent 3 — responsible for business insights."""
+    """Agent 3 — responsible for business insights.
+
+    Equipped with MCP filesystem tools so it can directly read
+    the generated EDA report and clean data from the outputs/ directory.
+    """
+    mcp_tools = get_mcp_file_tools()
+    if mcp_tools:
+        logger.info(f"BI Analyst: {len(mcp_tools)} MCP tool(s) attached")
+    else:
+        logger.info("BI Analyst: running without MCP tools (fallback mode)")
+
     return Agent(
         role="Business Intelligence Analyst",
         goal=(
@@ -76,9 +90,12 @@ def build_bi_analyst() -> Agent:
         backstory=(
             "You bridge the gap between data and business decisions. "
             "You translate complex patterns into clear recommendations "
-            "that non-technical stakeholders can act on immediately."
+            "that non-technical stakeholders can act on immediately. "
+            "You use MCP filesystem access to read the latest generated "
+            "reports directly from disk."
         ),
         llm=_build_llm(),
+        tools=mcp_tools,
         memory=True,
         verbose=True,
         max_iter=CREW_MAX_ITER,

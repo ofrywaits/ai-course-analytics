@@ -3,9 +3,13 @@
 Three agents for Crew 2 — Data Scientist Crew.
 """
 
+import logging
 import os
 from crewai import Agent, LLM
 from config import LLM_MODEL, CREW_MAX_ITER
+from tools.mcp_tools import get_mcp_file_tools
+
+logger = logging.getLogger(__name__)
 
 
 def _build_llm() -> LLM:
@@ -63,7 +67,17 @@ def build_ml_engineer() -> Agent:
 
 
 def build_ethics_specialist() -> Agent:
-    """Agent 6 — Model Card and AI ethics."""
+    """Agent 6 — Model Card and AI ethics.
+
+    Equipped with MCP filesystem tools so it can read the evaluation report
+    directly from outputs/ when writing the Model Card.
+    """
+    mcp_tools = get_mcp_file_tools()
+    if mcp_tools:
+        logger.info(f"Ethics Specialist: {len(mcp_tools)} MCP tool(s) attached")
+    else:
+        logger.info("Ethics Specialist: running without MCP tools (fallback mode)")
+
     return Agent(
         role="AI Ethics and Documentation Specialist",
         goal=(
@@ -74,9 +88,12 @@ def build_ethics_specialist() -> Agent:
         backstory=(
             "You believe AI systems must be transparent and accountable. "
             "Your model cards are the gold standard — clear, honest, "
-            "and actionable for both technical and non-technical readers."
+            "and actionable for both technical and non-technical readers. "
+            "You use MCP filesystem access to read evaluation reports "
+            "directly from disk before writing documentation."
         ),
         llm=_build_llm(),
+        tools=mcp_tools,
         memory=True,
         verbose=True,
         max_iter=CREW_MAX_ITER,
