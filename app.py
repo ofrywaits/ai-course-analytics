@@ -92,6 +92,26 @@ def file_status(path: Path, name: str) -> None:
 # ── Header ────────────────────────────────────────────────────────────────────
 st.markdown("# 🎓 AI Course Analytics Platform")
 st.markdown("**Automated analysis of 200,000+ Udemy courses using CrewAI**")
+
+# ── Live Health Check Banner ──────────────────────────────────────────────────
+try:
+    from monitoring import run_health_check, load_run_metrics
+    health = run_health_check()
+    metrics_data = load_run_metrics()
+
+    if health.all_ok:
+        st.success(f"✅ Platform healthy — {health.ok_count}/{health.total} output files ready"
+                   + (f" | Last run: {metrics_data.runtime_seconds:.0f}s | "
+                      f"Accuracy: {metrics_data.accuracy_pct}"
+                      if metrics_data else ""))
+    else:
+        st.warning(
+            f"⚠️ {len(health.missing)} file(s) missing: {', '.join(health.missing)}  "
+            f"— Click **Run Full Analysis** to generate them."
+        )
+except Exception:
+    pass  # Monitoring is optional — never block the dashboard
+
 st.divider()
 
 # ── Run Button ────────────────────────────────────────────────────────────────
