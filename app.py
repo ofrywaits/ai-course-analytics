@@ -544,10 +544,26 @@ with tab4:
     if model_pred is None:
         st.warning("Model not trained yet — run the full analysis first.")
     else:
-        # ── Build the same LabelEncoder mappings used during training ──────────
-        @st.cache_data
-        def _load_encoder_maps() -> dict:
-            """Load category/language/subcategory→int mappings from clean data."""
+        # ── Load LabelEncoders saved during training (correct inference pattern) ──
+        @st.cache_resource
+        def _load_encoders() -> dict:
+            """
+            Load LabelEncoders from encoders.pkl saved by Crew 2 during training.
+            This is the correct ML inference pattern — encoders must be identical
+            to those fitted on training data, not rebuilt from the raw CSV.
+            Falls back to rebuilding from CSV only if encoders.pkl is missing.
+            """
+            enc_path = OUTPUTS / "encoders.pkl"
+            if enc_path.exists():
+                encoders = joblib.load(enc_path)
+                logger.info("Loaded encoders from disk: %s", list(encoders.keys()))
+                return {
+                    col: {cls: int(idx) for idx, cls in enumerate(le.classes_)}
+                    for col, le in encoders.items()
+                    if hasattr(le, "classes_")
+                }
+            # Fallback — should not happen in a complete pipeline run
+            logger.warning("encoders.pkl not found — rebuilding from CSV (fallback)")
             from sklearn.preprocessing import LabelEncoder
             df_c = pd.read_csv(CLEAN_CSV) if CLEAN_CSV.exists() else pd.DataFrame()
             maps = {}
@@ -559,7 +575,7 @@ with tab4:
                                  for cls in le.classes_}
             return maps
 
-        enc_maps = _load_encoder_maps()
+        enc_maps = _load_encoders()
 
         CATEGORIES = list(enc_maps.get("category", {}).keys())
         TOP_LANGUAGES = [
