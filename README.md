@@ -8,6 +8,7 @@
 [![Python](https://img.shields.io/badge/python-3.12-blue)](https://python.org)
 [![CrewAI](https://img.shields.io/badge/CrewAI-Flow-purple)](https://crewai.com)
 [![Streamlit](https://img.shields.io/badge/Streamlit-dashboard-red)](https://streamlit.io)
+[![Deploy on Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://share.streamlit.io)
 
 ---
 

@@ -17,3 +17,6 @@ data/raw.csv
 
 # Text artifacts — committed for instructor review
 # outputs/*.md, outputs/*.html, outputs/*.json → tracked
+
+# Streamlit secrets — never commit real secrets
+.streamlit/secrets.toml
