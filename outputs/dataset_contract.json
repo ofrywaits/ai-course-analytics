@@ -1,68 +1,215 @@
 {
-  "num_rows": 206885,
-  "num_columns": 20,
-  "columns": [
-    "title",
-    "is_paid",
-    "price",
-    "num_subscribers",
-    "avg_rating",
-    "num_reviews",
-    "num_comments",
-    "num_lectures",
-    "content_length_min",
-    "published_time",
-    "last_update_date",
-    "category",
-    "subcategory",
-    "language",
-    "instructor_name",
-    "is_popular",
-    "publish_year",
-    "publish_month",
-    "publish_day_of_week",
-    "course_age_years"
-  ],
-  "numeric_columns": [
-    "price",
-    "num_subscribers",
-    "avg_rating",
-    "num_reviews",
-    "num_comments",
-    "num_lectures",
-    "content_length_min"
-  ],
-  "categorical_columns": [
-    "category",
-    "subcategory",
-    "language",
-    "is_paid"
-  ],
-  "target_column": "is_popular",
-  "target_distribution": {
-    "0": 103555,
-    "1": 103330
+  "schema": {
+    "title": {
+      "dtype": "str",
+      "nullable": false
+    },
+    "is_paid": {
+      "dtype": "bool",
+      "nullable": false
+    },
+    "price": {
+      "dtype": "float64",
+      "nullable": false
+    },
+    "num_subscribers": {
+      "dtype": "float64",
+      "nullable": false
+    },
+    "avg_rating": {
+      "dtype": "float64",
+      "nullable": false
+    },
+    "num_reviews": {
+      "dtype": "float64",
+      "nullable": false
+    },
+    "num_comments": {
+      "dtype": "float64",
+      "nullable": false
+    },
+    "num_lectures": {
+      "dtype": "float64",
+      "nullable": false
+    },
+    "content_length_min": {
+      "dtype": "float64",
+      "nullable": false
+    },
+    "published_time": {
+      "dtype": "str",
+      "nullable": false
+    },
+    "last_update_date": {
+      "dtype": "str",
+      "nullable": true
+    },
+    "category": {
+      "dtype": "str",
+      "nullable": false
+    },
+    "subcategory": {
+      "dtype": "str",
+      "nullable": false
+    },
+    "language": {
+      "dtype": "str",
+      "nullable": false
+    },
+    "instructor_name": {
+      "dtype": "str",
+      "nullable": true
+    },
+    "is_popular": {
+      "dtype": "int64",
+      "nullable": false
+    },
+    "publish_year": {
+      "dtype": "int64",
+      "nullable": false
+    },
+    "publish_month": {
+      "dtype": "int64",
+      "nullable": false
+    },
+    "publish_day_of_week": {
+      "dtype": "int64",
+      "nullable": false
+    },
+    "course_age_years": {
+      "dtype": "float64",
+      "nullable": false
+    }
   },
-  "missing_values": {
-    "title": 0,
-    "is_paid": 0,
-    "price": 0,
-    "num_subscribers": 0,
-    "avg_rating": 0,
-    "num_reviews": 0,
-    "num_comments": 0,
-    "num_lectures": 0,
-    "content_length_min": 0,
-    "published_time": 0,
-    "last_update_date": 131,
-    "category": 0,
-    "subcategory": 0,
-    "language": 0,
-    "instructor_name": 5,
-    "is_popular": 0,
-    "publish_year": 0,
-    "publish_month": 0,
-    "publish_day_of_week": 0,
-    "course_age_years": 0
-  }
+  "allowed_values": {
+    "language": [
+      "Afrikaans",
+      "Albanian",
+      "Arabic",
+      "Armenian",
+      "Aymara",
+      "Azeri",
+      "Basque",
+      "Bengali",
+      "Bulgarian",
+      "Burmese",
+      "Catalan",
+      "Croatian",
+      "Czech",
+      "Danish",
+      "Dutch",
+      "English",
+      "Estonian",
+      "Faroese",
+      "Filipino",
+      "Finnish",
+      "French",
+      "Frisian",
+      "Georgian",
+      "German",
+      "Greek",
+      "Guaran\u00ed",
+      "Gujarati",
+      "Haitian",
+      "Hebrew",
+      "Hindi",
+      "Hungarian",
+      "Indonesian",
+      "Irish",
+      "Italian",
+      "Japanese",
+      "Kannada",
+      "Kazakh",
+      "Khmer",
+      "Korean",
+      "Kurdish",
+      "Latvian",
+      "Lithuanian",
+      "Macedonian",
+      "Malay",
+      "Malayalam",
+      "Marathi",
+      "Mongolian",
+      "Nepali",
+      "Norwegian",
+      "Pashto",
+      "Persian",
+      "Polish",
+      "Portuguese",
+      "Punjabi",
+      "Quechua",
+      "Romanian",
+      "Russian",
+      "Serbian",
+      "Simplified Chinese",
+      "Slovak",
+      "Slovenian",
+      "Somali",
+      "Spanish",
+      "Swahili",
+      "Swedish",
+      "Tajik",
+      "Tamil",
+      "Tatar",
+      "Telugu",
+      "Thai",
+      "Traditional Chinese",
+      "Turkish",
+      "Ukrainian",
+      "Urdu",
+      "Uzbek",
+      "Vietnamese",
+      "Welsh",
+      "Xhosa",
+      "Zulu"
+    ],
+    "is_paid": [
+      1,
+      0
+    ],
+    "category": [
+      "Business",
+      "Design",
+      "Development",
+      "Finance & Accounting",
+      "Health & Fitness",
+      "IT & Software",
+      "Lifestyle",
+      "Marketing",
+      "Music",
+      "Office Productivity",
+      "Personal Development",
+      "Photography & Video",
+      "Teaching & Academics"
+    ]
+  },
+  "constraints": {
+    "price": {
+      "min": 0.0,
+      "max": 799.0
+    },
+    "avg_rating": {
+      "min": 0.0,
+      "max": 5.0
+    },
+    "num_lectures": {
+      "min": 0.0
+    },
+    "num_subscribers": {
+      "min": 0.0
+    },
+    "content_length_min": {
+      "min": 0.0
+    },
+    "publish_month": {
+      "min": 1.0,
+      "max": 12.0
+    }
+  },
+  "row_count": {
+    "min": 200000
+  },
+  "target_column": "is_popular",
+  "num_rows": 206885,
+  "num_columns": 20
 }
