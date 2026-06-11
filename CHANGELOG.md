@@ -5,6 +5,33 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [1.4.0] — 2026-06-04 — UX Prototype & Code Quality Sprint
+
+### Added
+- **UX/UI Prototype** (Steps 4+5 from 18-step methodology) — 4 screens designed with Google Stitch
+  - Overview dashboard with metric cards and category charts
+  - EDA Report with all 6 embedded charts
+  - Course Predictor with sliders and probability gauge
+  - Downloads tab with all 8 output artifacts
+- **`docs/ux-prototype/`** — 4 PNG screenshots from Stitch embedded in README
+- **`tests/test_viz_tools.py`** — 8 new tests covering all 6 chart functions (was 0% coverage)
+- **`tests/test_e2e_streamlit.py`** — 14 E2E tests with pytest-playwright (skip by default)
+- **`crews/shared.py`** — shared `build_llm()` extracted from both agent modules
+- **`pytest-cov`** — 79% test coverage across tools/, validation/, monitoring.py
+
+### Fixed
+- `GROQ_API_KEY` — raises `EnvironmentError` instead of silently setting empty string
+- `LabelEncoder` — one per column, each stored in `encoders` dict and saved to `outputs/encoders.pkl`
+- `StandardScaler` wrapped in `Pipeline` so it's saved with the LR model
+- Predictor tab reindexes columns against `model.feature_names_in_` before prediction
+- `== True` / `== False` on boolean Series replaced with idiomatic pandas
+- `import re` moved to top of `monitoring.py`; regex used correctly for crew status parsing
+- Magic numbers extracted to `config.py`: `OUTLIER_QUANTILE`, `MIN_DATASET_ROWS`, `RF_N_ESTIMATORS`, `RF_MAX_DEPTH`, `LR_MAX_ITER`, `ENCODERS_PATH`
+- Seaborn `FutureWarning` fixed with `hue=` and `legend=False`
+- Silent `except Exception: pass` replaced with `logger.debug()`
+
+---
+
 ## [1.3.0] — 2026-06-02 — Final Polish & Grading Sprint
 
 ### Added

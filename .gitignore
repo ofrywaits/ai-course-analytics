@@ -3,8 +3,17 @@ __pycache__/
 *.pyc
 *.pyo
 .DS_Store
-outputs/
 logs/
-*.pkl
 venv/
 .venv/
+
+# Large binary artifacts — excluded from repo
+outputs/*.pkl
+outputs/*.joblib
+outputs/clean_data.csv
+outputs/features.csv
+outputs/presentation.pptx
+data/raw.csv
+
+# Text artifacts — committed for instructor review
+# outputs/*.md, outputs/*.html, outputs/*.json → tracked

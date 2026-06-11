@@ -185,8 +185,8 @@ def build_insights_task(agent: Agent, context_tasks: list) -> Task:
     best_price = df[df["is_popular"] == 1]["price"].mode().iloc[0] if len(df) > 0 else "N/A"
     best_cat   = df.groupby("category")["num_subscribers"].mean().idxmax()
     best_month = df.groupby("publish_month")["num_subscribers"].mean().idxmax()
-    free_avg   = df[df["is_paid"] == False]["num_subscribers"].mean()
-    paid_avg   = df[df["is_paid"] == True]["num_subscribers"].mean()
+    free_avg   = df[~df["is_paid"]]["num_subscribers"].mean()
+    paid_avg   = df[df["is_paid"]]["num_subscribers"].mean()
 
     context_str = (
         f"Key statistics:\n"

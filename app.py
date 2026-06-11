@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 """
 Streamlit Dashboard — AI Course Analytics Platform.
-4 tabs: Overview | EDA Report | Model Results | Downloads
+5 tabs: Overview | EDA Report | Model Results | Predict | Downloads
 """
 
+import logging
 import re
 import subprocess
 import sys
@@ -14,6 +15,8 @@ import joblib
 import pandas as pd
 import plotly.express as px
 import streamlit as st
+
+logger = logging.getLogger(__name__)
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
 BASE         = Path(__file__).parent
@@ -36,19 +39,195 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
-# ── CSS ───────────────────────────────────────────────────────────────────────
+# ── CSS — Stitch Design System ────────────────────────────────────────────────
+# Colors: #0E1417 bg · #1A2123 surface · #3C494E border · #00D4FF cyan · #DDE3E7 text
 st.markdown("""
 <style>
-  .main { background: #f8f9fa; }
-  .kpi-card {
-    background: white; border-radius: 14px; padding: 20px 24px;
-    box-shadow: 0 2px 12px rgba(0,0,0,.08); text-align: center;
+  /* ── Google Font: Inter ── */
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  html, body, [class*="css"] {
+    font-family: 'Inter', sans-serif !important;
   }
-  .kpi-value { font-size: 2.2em; font-weight: 700; color: #667eea; }
-  .kpi-label { color: #888; font-size: .9em; margin-top: 4px; }
-  .status-ok  { color: #28a745; font-weight: 700; }
-  .status-err { color: #dc3545; font-weight: 700; }
-  h1 { color: #333; }
+
+  /* ── Base background ── */
+  .stApp { background-color: #0E1417 !important; }
+  section[data-testid="stSidebar"] { background-color: #080F12 !important; }
+
+  /* ── Header ── */
+  header[data-testid="stHeader"] {
+    background-color: #0E1417 !important;
+    border-bottom: 1px solid #3C494E;
+  }
+
+  /* ── Tabs ── */
+  .stTabs [data-baseweb="tab-list"] {
+    background-color: #0E1417;
+    border-bottom: 1px solid #3C494E;
+    gap: 0;
+  }
+  .stTabs [data-baseweb="tab"] {
+    background-color: transparent;
+    color: #BBC9CF;
+    font-weight: 500;
+    font-size: 14px;
+    padding: 12px 20px;
+    border-bottom: 2px solid transparent;
+  }
+  .stTabs [aria-selected="true"] {
+    color: #00D4FF !important;
+    border-bottom: 2px solid #00D4FF !important;
+    background-color: transparent !important;
+  }
+  .stTabs [data-baseweb="tab"]:hover { color: #DDE3E7 !important; }
+
+  /* ── KPI cards ── */
+  .kpi-card {
+    background: #1A2123;
+    border: 1px solid #3C494E;
+    border-radius: 8px;
+    padding: 20px 16px;
+    text-align: center;
+  }
+  .kpi-value {
+    font-size: 2.2em;
+    font-weight: 700;
+    color: #00D4FF;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .kpi-label {
+    color: #BBC9CF;
+    font-size: .82em;
+    margin-top: 6px;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    font-weight: 500;
+  }
+
+  /* ── File status ── */
+  .status-ok  { color: #4ADE80; font-weight: 600; }
+  .status-err { color: #F87171; font-weight: 600; }
+
+  /* ── Headings ── */
+  h1, h2, h3 { color: #DDE3E7 !important; font-weight: 600 !important; }
+  h1 { font-size: 2em !important; letter-spacing: -0.01em !important; }
+
+  /* ── Buttons ── */
+  .stButton > button[kind="primary"] {
+    background-color: #00D4FF !important;
+    color: #003642 !important;
+    border: none !important;
+    font-weight: 600 !important;
+    border-radius: 4px !important;
+  }
+  .stButton > button[kind="primary"]:hover {
+    background-color: #00AACF !important;
+  }
+
+  /* ── Inputs / selects / sliders ── */
+  .stSelectbox > div > div,
+  .stNumberInput > div > div,
+  .stTextInput > div > div {
+    background-color: #1A2123 !important;
+    border-color: #3C494E !important;
+    color: #DDE3E7 !important;
+    border-radius: 4px !important;
+  }
+  .stSlider [data-baseweb="slider"] [role="progressbar"] {
+    background-color: #00D4FF !important;
+  }
+  .stSlider [data-baseweb="slider"] [data-testid="stThumbValue"] {
+    color: #00D4FF !important;
+  }
+
+  /* ── Radio buttons ── */
+  .stRadio > label { color: #DDE3E7 !important; }
+
+  /* ── Divider ── */
+  hr { border-color: #3C494E !important; }
+
+  /* ── Expander ── */
+  .streamlit-expanderHeader {
+    background-color: #1A2123 !important;
+    color: #DDE3E7 !important;
+    border: 1px solid #3C494E !important;
+    border-radius: 4px !important;
+  }
+  .streamlit-expanderContent {
+    background-color: #161D1F !important;
+    border: 1px solid #3C494E !important;
+    border-top: none !important;
+  }
+
+  /* ── Code blocks ── */
+  pre, code {
+    background-color: #080F12 !important;
+    color: #00D4FF !important;
+    font-family: 'JetBrains Mono', monospace !important;
+    border: 1px solid #3C494E !important;
+    border-radius: 4px !important;
+  }
+
+  /* ── Tables ── */
+  table { border-collapse: collapse !important; width: 100% !important; }
+  th {
+    background-color: #242B2E !important;
+    color: #BBC9CF !important;
+    text-transform: uppercase;
+    font-size: 11px;
+    letter-spacing: .05em;
+    padding: 10px 14px !important;
+    border-bottom: 1px solid #3C494E !important;
+  }
+  td {
+    color: #DDE3E7 !important;
+    padding: 8px 14px !important;
+    border-bottom: 1px solid #242B2E !important;
+  }
+  tr:hover td { background-color: #1A2123 !important; }
+
+  /* ── Download buttons ── */
+  .stDownloadButton > button {
+    background-color: #1A2123 !important;
+    color: #DDE3E7 !important;
+    border: 1px solid #3C494E !important;
+    border-radius: 4px !important;
+    font-size: 13px !important;
+  }
+  .stDownloadButton > button:hover {
+    border-color: #00D4FF !important;
+    color: #00D4FF !important;
+  }
+
+  /* ── Alert banners ── */
+  .stSuccess {
+    background-color: rgba(74,222,128,.08) !important;
+    border-left: 3px solid #4ADE80 !important;
+    color: #DDE3E7 !important;
+  }
+  .stWarning {
+    background-color: rgba(255,186,61,.08) !important;
+    border-left: 3px solid #FFBA3D !important;
+    color: #DDE3E7 !important;
+  }
+  .stError {
+    background-color: rgba(248,113,113,.08) !important;
+    border-left: 3px solid #F87171 !important;
+    color: #DDE3E7 !important;
+  }
+  .stInfo {
+    background-color: rgba(0,212,255,.08) !important;
+    border-left: 3px solid #00D4FF !important;
+    color: #DDE3E7 !important;
+  }
+
+  /* ── Progress bar ── */
+  .stProgress > div > div > div { background-color: #00D4FF !important; }
+
+  /* ── Markdown text ── */
+  p, li { color: #DDE3E7 !important; }
+  a { color: #00D4FF !important; }
+  strong { color: #DDE3E7 !important; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -109,8 +288,8 @@ try:
             f"⚠️ {len(health.missing)} file(s) missing: {', '.join(health.missing)}  "
             f"— Click **Run Full Analysis** to generate them."
         )
-except Exception:
-    pass  # Monitoring is optional — never block the dashboard
+except Exception as _mon_exc:
+    logger.debug(f"Monitoring unavailable: {_mon_exc}")  # Never block dashboard
 
 st.divider()
 
@@ -193,10 +372,14 @@ with tab1:
             st.subheader("Courses by Category")
             cat_counts = df["category"].value_counts().head(10).reset_index()
             cat_counts.columns = ["Category", "Number of Courses"]
+            _dark = dict(paper_bgcolor="#0E1417", plot_bgcolor="#0E1417",
+                         font=dict(color="#DDE3E7"),
+                         xaxis=dict(gridcolor="#3C494E", color="#BBC9CF"),
+                         yaxis=dict(gridcolor="#3C494E", color="#BBC9CF"))
             fig = px.bar(cat_counts, x="Number of Courses", y="Category",
                          orientation="h", color="Number of Courses",
-                         color_continuous_scale="Blues")
-            fig.update_layout(showlegend=False, height=350)
+                         color_continuous_scale=[[0, "#1A2123"], [1, "#00D4FF"]])
+            fig.update_layout(showlegend=False, height=350, **_dark)
             st.plotly_chart(fig, use_container_width=True)
 
         with col_b:
@@ -205,9 +388,14 @@ with tab1:
                 ascending=False).head(10).reset_index()
             lang_pop.columns = ["Language", "% Popular"]
             lang_pop["% Popular"] = (lang_pop["% Popular"] * 100).round(1)
+            _dark2 = dict(paper_bgcolor="#0E1417", plot_bgcolor="#0E1417",
+                          font=dict(color="#DDE3E7"),
+                          xaxis=dict(gridcolor="#3C494E", color="#BBC9CF"),
+                          yaxis=dict(gridcolor="#3C494E", color="#BBC9CF"))
             fig2 = px.bar(lang_pop, x="Language", y="% Popular",
-                          color="% Popular", color_continuous_scale="Greens")
-            fig2.update_layout(showlegend=False, height=350)
+                          color="% Popular",
+                          color_continuous_scale=[[0, "#1A2123"], [1, "#4ADE80"]])
+            fig2.update_layout(showlegend=False, height=350, **_dark2)
             st.plotly_chart(fig2, use_container_width=True)
 
         st.subheader("Courses Published per Year")
@@ -216,7 +404,14 @@ with tab1:
             yearly.columns = ["Year", "New Courses"]
             fig3 = px.line(yearly, x="Year", y="New Courses",
                            markers=True, line_shape="spline")
-            fig3.update_traces(line_color="#667eea", line_width=3)
+            fig3.update_traces(line_color="#00D4FF", line_width=3,
+                               marker=dict(color="#00D4FF", size=8))
+            fig3.update_layout(
+                paper_bgcolor="#0E1417", plot_bgcolor="#0E1417",
+                font=dict(color="#DDE3E7"),
+                xaxis=dict(gridcolor="#3C494E", color="#BBC9CF"),
+                yaxis=dict(gridcolor="#3C494E", color="#BBC9CF"),
+            )
             st.plotly_chart(fig3, use_container_width=True)
 
         st.subheader("Output File Status")
@@ -295,13 +490,18 @@ with tab3:
                 index=["Actual: Not Popular", "Actual: Popular"],
                 columns=["Predicted: Not Popular", "Predicted: Popular"],
             )
+            _dark_cm = dict(
+                paper_bgcolor="#0E1417", plot_bgcolor="#0E1417",
+                font=dict(color="#DDE3E7"),
+                height=350,
+            )
             fig_cm = px.imshow(
                 cm_df,
                 text_auto=True,
-                color_continuous_scale="Blues",
+                color_continuous_scale=[[0, "#1A2123"], [0.5, "#004E5F"], [1, "#00D4FF"]],
                 title="Confusion Matrix — Popularity Prediction",
             )
-            fig_cm.update_layout(height=350)
+            fig_cm.update_layout(**_dark_cm)
             st.plotly_chart(fig_cm, use_container_width=True)
 
         if not df.empty and hasattr(model, "feature_importances_"):
@@ -318,9 +518,16 @@ with tab3:
             fig_fi = px.bar(
                 fi_df, x="Importance", y="Feature",
                 orientation="h",
-                color="Importance", color_continuous_scale="Purples",
+                color="Importance",
+                color_continuous_scale=[[0, "#1A2123"], [1, "#00D4FF"]],
             )
-            fig_fi.update_layout(showlegend=False)
+            fig_fi.update_layout(
+                showlegend=False,
+                paper_bgcolor="#0E1417", plot_bgcolor="#0E1417",
+                font=dict(color="#DDE3E7"),
+                xaxis=dict(gridcolor="#3C494E", color="#BBC9CF"),
+                yaxis=dict(gridcolor="#3C494E", color="#BBC9CF"),
+            )
             st.plotly_chart(fig_fi, use_container_width=True)
 
 # ── TAB 4: PREDICT MY COURSE ─────────────────────────────────────────────────
@@ -360,8 +567,8 @@ with tab4:
             "German", "French", "Arabic", "Italian", "Russian",
             "Hindi", "Korean", "Indonesian", "Polish", "Simplified Chinese",
         ]
-        LANGUAGES = [l for l in TOP_LANGUAGES
-                     if l in enc_maps.get("language", {})]
+        LANGUAGES = [lang for lang in TOP_LANGUAGES
+                     if lang in enc_maps.get("language", {})]
 
         st.divider()
         col_l, col_r = st.columns(2)
@@ -448,6 +655,11 @@ with tab4:
                 "course_age_years":    course_age,
             }])
 
+            # Reindex columns to match the exact order the model was trained on
+            if hasattr(model_pred, "feature_names_in_"):
+                input_data = input_data.reindex(
+                    columns=model_pred.feature_names_in_, fill_value=0
+                )
             prediction      = model_pred.predict(input_data)[0]
             proba           = model_pred.predict_proba(input_data)[0]
             popular_prob    = round(proba[1] * 100, 1)
@@ -477,23 +689,31 @@ with tab4:
                 mode  = "gauge+number+delta",
                 value = popular_prob,
                 delta = {"reference": 50, "suffix": "%"},
-                title = {"text": "Popularity Probability (%)"},
+                title = {"text": "Popularity Probability (%)", "font": {"color": "#DDE3E7"}},
+                number = {"font": {"color": "#00D4FF", "family": "JetBrains Mono"}},
                 gauge = {
-                    "axis":  {"range": [0, 100]},
-                    "bar":   {"color": "#667eea"},
+                    "axis":  {"range": [0, 100], "tickcolor": "#BBC9CF",
+                              "tickfont": {"color": "#BBC9CF"}},
+                    "bar":   {"color": "#00D4FF"},
+                    "bgcolor": "#1A2123",
+                    "bordercolor": "#3C494E",
                     "steps": [
-                        {"range": [0,  40], "color": "#ffcccc"},
-                        {"range": [40, 60], "color": "#fff3cd"},
-                        {"range": [60, 100], "color": "#d4edda"},
+                        {"range": [0,  40], "color": "#2D1B1B"},
+                        {"range": [40, 60], "color": "#2D2510"},
+                        {"range": [60, 100], "color": "#0D2B1A"},
                     ],
                     "threshold": {
-                        "line":  {"color": "black", "width": 4},
+                        "line":  {"color": "#FFBA3D", "width": 3},
                         "thickness": 0.75,
                         "value": 50,
                     },
                 },
             ))
-            fig_gauge.update_layout(height=300)
+            fig_gauge.update_layout(
+                height=300,
+                paper_bgcolor="#0E1417",
+                font=dict(color="#DDE3E7"),
+            )
             st.plotly_chart(fig_gauge, use_container_width=True)
 
             # ── Feature contributions breakdown ───────────────────────────────
@@ -511,10 +731,16 @@ with tab4:
                     fi_chart, x="Importance", y="Feature",
                     orientation="h",
                     color="Importance",
-                    color_continuous_scale="Purples",
+                    color_continuous_scale=[[0, "#1A2123"], [1, "#00D4FF"]],
                     title="Top factors the model used for this prediction",
                 )
-                fig_fi2.update_layout(showlegend=False, height=300)
+                fig_fi2.update_layout(
+                    showlegend=False, height=300,
+                    paper_bgcolor="#0E1417", plot_bgcolor="#0E1417",
+                    font=dict(color="#DDE3E7"),
+                    xaxis=dict(gridcolor="#3C494E", color="#BBC9CF"),
+                    yaxis=dict(gridcolor="#3C494E", color="#BBC9CF"),
+                )
                 st.plotly_chart(fig_fi2, use_container_width=True)
 
         # ── Maya's Demo Scenario ───────────────────────────────────────────────

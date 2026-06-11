@@ -4,24 +4,12 @@ Three agents for Crew 2 — Data Scientist Crew.
 """
 
 import logging
-import os
-from crewai import Agent, LLM
-from config import LLM_MODEL, CREW_MAX_ITER
+from crewai import Agent
+from config import CREW_MAX_ITER
+from crews.shared import build_llm
 from tools.mcp_tools import get_mcp_file_tools
 
 logger = logging.getLogger(__name__)
-
-
-def _build_llm() -> LLM:
-    """Build the LLM with Groq credentials."""
-    api_key = os.getenv("GROQ_API_KEY", "")
-    os.environ["GROQ_API_KEY"] = api_key
-    return LLM(
-        model=LLM_MODEL,
-        temperature=0.3,
-        max_tokens=2048,
-        max_retries=5,
-    )
 
 
 def build_feature_engineer() -> Agent:
@@ -38,7 +26,7 @@ def build_feature_engineer() -> Agent:
             "You know exactly which transformations make models perform better, "
             "and you never let data leakage slip through."
         ),
-        llm=_build_llm(),
+        llm=build_llm(),
         memory=True,
         verbose=True,
         max_iter=CREW_MAX_ITER,
@@ -59,7 +47,7 @@ def build_ml_engineer() -> Agent:
             "You always validate with cross-validation and never trust "
             "a single train/test split result alone."
         ),
-        llm=_build_llm(),
+        llm=build_llm(),
         memory=True,
         verbose=True,
         max_iter=CREW_MAX_ITER,
@@ -92,7 +80,7 @@ def build_ethics_specialist() -> Agent:
             "You use MCP filesystem access to read evaluation reports "
             "directly from disk before writing documentation."
         ),
-        llm=_build_llm(),
+        llm=build_llm(),
         tools=mcp_tools,
         memory=True,
         verbose=True,

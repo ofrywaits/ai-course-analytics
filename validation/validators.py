@@ -22,6 +22,7 @@ from config import (
     FEATURES_PATH,
     TARGET_COLUMN,
     MIN_ACCURACY_THRESHOLD,
+    MIN_DATASET_ROWS,
 )
 
 logger = logging.getLogger(__name__)
@@ -57,9 +58,9 @@ def validate_clean_data() -> pd.DataFrame:
     if missing:
         raise ValidationError(f"Missing columns in clean_data: {missing}")
 
-    if len(df) < 1000:
+    if len(df) < MIN_DATASET_ROWS:
         raise ValidationError(
-            f"Dataset too small: {len(df)} rows (minimum 1,000)"
+            f"Dataset too small: {len(df)} rows (minimum {MIN_DATASET_ROWS:,})"
         )
 
     null_pct = df[required_cols].isnull().mean().max()
@@ -148,8 +149,8 @@ def validate_features() -> pd.DataFrame:
     validate_file_exists(FEATURES_PATH, "features.csv")
 
     df = pd.read_csv(FEATURES_PATH)
-    if len(df) < 1000:
-        raise ValidationError(f"features.csv too small: {len(df)} rows")
+    if len(df) < MIN_DATASET_ROWS:
+        raise ValidationError(f"features.csv too small: {len(df)} rows (minimum {MIN_DATASET_ROWS:,})")
     if TARGET_COLUMN not in df.columns:
         raise ValidationError(f"Target column '{TARGET_COLUMN}' missing from features.csv")
 

@@ -12,12 +12,14 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
 from sklearn.model_selection import cross_val_score, train_test_split
+from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import LabelEncoder, StandardScaler
 
 from config import (
     CLEAN_DATA_PATH,
     FEATURES_PATH,
     MODEL_PATH,
+    ENCODERS_PATH,
     EVALUATION_REPORT_PATH,
     TARGET_COLUMN,
     NUMERIC_COLUMNS,
@@ -25,6 +27,9 @@ from config import (
     TEST_SIZE,
     RANDOM_STATE,
     CV_FOLDS,
+    RF_N_ESTIMATORS,
+    RF_MAX_DEPTH,
+    LR_MAX_ITER,
     OUTPUTS_DIR,
 )
 
@@ -43,9 +48,16 @@ def build_features(df: pd.DataFrame) -> pd.DataFrame:
     df = df.drop(columns=[c for c in drop if c in df.columns], errors="ignore")
 
     cat_cols = [c for c in CATEGORICAL_COLUMNS if c in df.columns]
-    le = LabelEncoder()
+    encoders: dict[str, LabelEncoder] = {}
     for col in cat_cols:
+        le = LabelEncoder()
         df[col] = le.fit_transform(df[col].astype(str))
+        encoders[col] = le
+
+    # Persist encoders so the dashboard can encode user input identically
+    OUTPUTS_DIR.mkdir(exist_ok=True)
+    joblib.dump(encoders, ENCODERS_PATH)
+    logger.info(f"Encoders saved: {ENCODERS_PATH}")
 
     if "is_paid" in df.columns:
         df["is_paid"] = df["is_paid"].astype(int)
@@ -74,13 +86,9 @@ def train_and_compare(df: pd.DataFrame) -> tuple:
         X, y, test_size=TEST_SIZE, random_state=RANDOM_STATE, stratify=y
     )
 
-    scaler     = StandardScaler()
-    X_train_sc = scaler.fit_transform(X_train)
-    X_test_sc  = scaler.transform(X_test)
-
     logger.info("Training Random Forest...")
     rf = RandomForestClassifier(
-        n_estimators=100, max_depth=10,
+        n_estimators=RF_N_ESTIMATORS, max_depth=RF_MAX_DEPTH,
         random_state=RANDOM_STATE, n_jobs=-1
     )
     rf.fit(X_train, y_train)
@@ -88,11 +96,14 @@ def train_and_compare(df: pd.DataFrame) -> tuple:
     rf_cv  = cross_val_score(rf, X_train, y_train, cv=CV_FOLDS).mean()
     logger.info(f"Random Forest — test acc: {rf_acc:.4f}, CV: {rf_cv:.4f}")
 
-    logger.info("Training Logistic Regression...")
-    lr = LogisticRegression(max_iter=500, random_state=RANDOM_STATE)
-    lr.fit(X_train_sc, y_train)
-    lr_acc = accuracy_score(y_test, lr.predict(X_test_sc))
-    lr_cv  = cross_val_score(lr, X_train_sc, y_train, cv=CV_FOLDS).mean()
+    logger.info("Training Logistic Regression (with Pipeline scaler)...")
+    lr_pipeline = Pipeline([
+        ("scaler", StandardScaler()),
+        ("lr", LogisticRegression(max_iter=LR_MAX_ITER, random_state=RANDOM_STATE)),
+    ])
+    lr_pipeline.fit(X_train, y_train)
+    lr_acc = accuracy_score(y_test, lr_pipeline.predict(X_test))
+    lr_cv  = cross_val_score(lr_pipeline, X_train, y_train, cv=CV_FOLDS).mean()
     logger.info(f"Logistic Regression — test acc: {lr_acc:.4f}, CV: {lr_cv:.4f}")
 
     if rf_cv >= lr_cv:
@@ -101,9 +112,9 @@ def train_and_compare(df: pd.DataFrame) -> tuple:
         y_pred = rf.predict(X_test)
         feature_imp = dict(zip(X.columns, rf.feature_importances_))
     else:
-        best_model, best_name = lr, "Logistic Regression"
+        best_model, best_name = lr_pipeline, "Logistic Regression"
         best_acc, best_cv = lr_acc, lr_cv
-        y_pred = lr.predict(X_test_sc)
+        y_pred = lr_pipeline.predict(X_test)
         feature_imp = {}
 
     logger.info(f"Selected model: {best_name} (CV={best_cv:.4f})")

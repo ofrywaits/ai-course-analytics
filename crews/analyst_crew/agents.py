@@ -5,24 +5,12 @@ Each agent is responsible for exactly one domain.
 """
 
 import logging
-import os
-from crewai import Agent, LLM
-from config import LLM_MODEL, CREW_MAX_ITER
+from crewai import Agent
+from config import CREW_MAX_ITER
+from crews.shared import build_llm
 from tools.mcp_tools import get_mcp_file_tools
 
 logger = logging.getLogger(__name__)
-
-
-def _build_llm() -> LLM:
-    """Build the LLM with Groq credentials."""
-    api_key = os.getenv("GROQ_API_KEY", "")
-    os.environ["GROQ_API_KEY"] = api_key
-    return LLM(
-        model=LLM_MODEL,
-        temperature=0.3,
-        max_tokens=2048,
-        max_retries=5,
-    )
 
 
 def build_data_engineer() -> Agent:
@@ -39,7 +27,7 @@ def build_data_engineer() -> Agent:
             "building reliable data pipelines. You never pass dirty data "
             "to downstream processes — quality is your top priority."
         ),
-        llm=_build_llm(),
+        llm=build_llm(),
         memory=True,
         verbose=True,
         max_iter=CREW_MAX_ITER,
@@ -61,7 +49,7 @@ def build_data_analyst() -> Agent:
             "visual stories. Your HTML reports are always polished, insightful, "
             "and ready to be presented to executives."
         ),
-        llm=_build_llm(),
+        llm=build_llm(),
         memory=True,
         verbose=True,
         max_iter=CREW_MAX_ITER,
@@ -94,7 +82,7 @@ def build_bi_analyst() -> Agent:
             "You use MCP filesystem access to read the latest generated "
             "reports directly from disk."
         ),
-        llm=_build_llm(),
+        llm=build_llm(),
         tools=mcp_tools,
         memory=True,
         verbose=True,

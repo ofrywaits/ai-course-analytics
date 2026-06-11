@@ -13,6 +13,7 @@ and give operators visibility into platform health without external tooling.
 
 import logging
 import platform
+import re
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -125,7 +126,6 @@ def load_run_metrics(outputs_dir: Optional[Path] = None) -> Optional[RunMetrics]
 
     Returns None if the file doesn't exist yet (pipeline not run).
     """
-    import re
     path = (outputs_dir or _OUTPUTS_DIR) / "run_summary.txt"
     if not path.exists():
         logger.info("run_summary.txt not found — pipeline has not run yet")
@@ -142,8 +142,8 @@ def load_run_metrics(outputs_dir: Optional[Path] = None) -> Optional[RunMetrics]
     if m:
         metrics.rows_processed = int(m.group(1).replace(",", ""))
 
-    metrics.crew1_passed = "Crew 1:.*✅" in text or "Crew 1:         ✅" in text
-    metrics.crew2_passed = "Crew 2:.*✅" in text or "Crew 2:         ✅" in text
+    metrics.crew1_passed = bool(re.search(r"Crew 1:.*✅", text))
+    metrics.crew2_passed = bool(re.search(r"Crew 2:.*✅", text))
 
     m = re.search(r"Accuracy:\s+([\d.]+)", text)
     if m:

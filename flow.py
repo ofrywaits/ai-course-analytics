@@ -12,7 +12,7 @@ import pandas as pd
 from crewai.flow.flow import Flow, listen, start
 from pydantic import BaseModel
 
-from config import OUTPUTS_DIR, LOGS_DIR
+from config import OUTPUTS_DIR, LOGS_DIR, EVALUATION_REPORT_PATH, CLEAN_DATA_PATH
 from validation.validators import (
     ValidationError,
     run_crew1_validations,
@@ -87,18 +87,16 @@ class RetailAnalyticsFlow(Flow[RetailFlowState]):
     @listen(validate_scientist_outputs)
     def generate_summary(self) -> None:
         """Step 5: Generate and print a full run summary with all metrics."""
-        elapsed    = round(time.time() - self.state.start_time, 1)
-        eval_path  = OUTPUTS_DIR / "evaluation_report.md"
-        clean_path = OUTPUTS_DIR / "clean_data.csv"
+        elapsed = round(time.time() - self.state.start_time, 1)
 
-        if eval_path.exists():
+        if EVALUATION_REPORT_PATH.exists():
             m = re.search(
                 r"Test Accuracy \| ([0-9.]+)",
-                eval_path.read_text(encoding="utf-8"),
+                EVALUATION_REPORT_PATH.read_text(encoding="utf-8"),
             )
             self.state.accuracy = float(m.group(1)) if m else 0.0
 
-        rows = len(pd.read_csv(clean_path)) if clean_path.exists() else 0
+        rows = len(pd.read_csv(CLEAN_DATA_PATH)) if CLEAN_DATA_PATH.exists() else 0
 
         summary = (
             f"\n{'='*54}\n"

@@ -45,7 +45,7 @@ def _img_tag(b64: str, title: str = "") -> str:
 def plot_price_distribution(df: pd.DataFrame) -> str:
     """Histogram of price distribution + free vs paid pie chart."""
     fig, axes = plt.subplots(1, 2, figsize=FIGSIZE_WIDE)
-    paid = df[df["is_paid"] == True]["price"]
+    paid = df[df["is_paid"]]["price"]
     axes[0].hist(paid[paid > 0], bins=50, color="#4C72B0", edgecolor="white")
     axes[0].set_title("Paid Course Price Distribution")
     axes[0].set_xlabel("Price ($)")
@@ -73,7 +73,8 @@ def plot_subscribers_by_category(df: pd.DataFrame) -> str:
         .head(15)
     )
     fig, ax = plt.subplots(figsize=FIGSIZE_WIDE)
-    sns.barplot(x=avg.values, y=avg.index, palette="Blues_r", ax=ax)
+    sns.barplot(x=avg.values, y=avg.index, hue=avg.index,
+                palette="Blues_r", legend=False, ax=ax)
     ax.set_title("Average Subscribers by Category (Top 15)")
     ax.set_xlabel("Average Subscribers")
     ax.set_ylabel("")
@@ -101,7 +102,8 @@ def plot_top_subcategories(df: pd.DataFrame) -> str:
     """Top 10 subcategories by number of courses."""
     top = df["subcategory"].value_counts().head(10)
     fig, ax = plt.subplots(figsize=FIGSIZE_WIDE)
-    sns.barplot(x=top.values, y=top.index, palette="viridis", ax=ax)
+    sns.barplot(x=top.values, y=top.index, hue=top.index,
+                palette="viridis", legend=False, ax=ax)
     ax.set_title("Top 10 Subcategories")
     ax.set_xlabel("Number of Courses")
     fig.tight_layout()

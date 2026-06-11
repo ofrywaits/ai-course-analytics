@@ -20,6 +20,7 @@ from config import (
     DROP_COLUMNS,
     TARGET_COLUMN,
     POPULARITY_THRESHOLD,
+    OUTLIER_QUANTILE,
     OUTPUTS_DIR,
 )
 
@@ -105,7 +106,7 @@ def remove_outliers(df: pd.DataFrame) -> pd.DataFrame:
     before = len(df)
     for col in ["price", "num_subscribers", "num_reviews"]:
         if col in df.columns:
-            upper = df[col].quantile(0.995)
+            upper = df[col].quantile(OUTLIER_QUANTILE)
             df = df[df[col] <= upper]
     logger.info(f"Removed {before - len(df):,} extreme outliers")
     return df

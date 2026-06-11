@@ -59,6 +59,18 @@ CV_FOLDS               = 5
 MIN_ACCURACY_THRESHOLD = 0.70
 POPULARITY_THRESHOLD   = None    # None = auto median
 
+# Hyperparameters
+RF_N_ESTIMATORS        = 100
+RF_MAX_DEPTH           = 10
+LR_MAX_ITER            = 500
+
+# Data quality thresholds
+OUTLIER_QUANTILE       = 0.995   # Remove top 0.5% outliers
+MIN_DATASET_ROWS       = 1_000   # Minimum rows after cleaning
+
+# Persistence
+ENCODERS_PATH          = OUTPUTS_DIR / "encoders.pkl"
+
 # ===== CrewAI =====
 CREW_VERBOSE  = True
 CREW_MAX_ITER = 10

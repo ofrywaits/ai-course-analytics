@@ -1,0 +1,68 @@
+{
+  "num_rows": 206885,
+  "num_columns": 20,
+  "columns": [
+    "title",
+    "is_paid",
+    "price",
+    "num_subscribers",
+    "avg_rating",
+    "num_reviews",
+    "num_comments",
+    "num_lectures",
+    "content_length_min",
+    "published_time",
+    "last_update_date",
+    "category",
+    "subcategory",
+    "language",
+    "instructor_name",
+    "is_popular",
+    "publish_year",
+    "publish_month",
+    "publish_day_of_week",
+    "course_age_years"
+  ],
+  "numeric_columns": [
+    "price",
+    "num_subscribers",
+    "avg_rating",
+    "num_reviews",
+    "num_comments",
+    "num_lectures",
+    "content_length_min"
+  ],
+  "categorical_columns": [
+    "category",
+    "subcategory",
+    "language",
+    "is_paid"
+  ],
+  "target_column": "is_popular",
+  "target_distribution": {
+    "0": 103555,
+    "1": 103330
+  },
+  "missing_values": {
+    "title": 0,
+    "is_paid": 0,
+    "price": 0,
+    "num_subscribers": 0,
+    "avg_rating": 0,
+    "num_reviews": 0,
+    "num_comments": 0,
+    "num_lectures": 0,
+    "content_length_min": 0,
+    "published_time": 0,
+    "last_update_date": 131,
+    "category": 0,
+    "subcategory": 0,
+    "language": 0,
+    "instructor_name": 5,
+    "is_popular": 0,
+    "publish_year": 0,
+    "publish_month": 0,
+    "publish_day_of_week": 0,
+    "course_age_years": 0
+  }
+}

@@ -3,10 +3,30 @@
 > Automated analysis of 200,000+ Udemy courses using **CrewAI Flow**, **scikit-learn**, and **Streamlit**.  
 > Predicts course popularity and delivers actionable insights for course creators.
 
-[![Tests](https://img.shields.io/badge/tests-50%20passed-brightgreen)](tests/)
+[![Tests](https://img.shields.io/badge/tests-77%20passed-brightgreen)](tests/)
+[![Coverage](https://img.shields.io/badge/coverage-79%25-green)](tests/)
 [![Python](https://img.shields.io/badge/python-3.12-blue)](https://python.org)
 [![CrewAI](https://img.shields.io/badge/CrewAI-Flow-purple)](https://crewai.com)
 [![Streamlit](https://img.shields.io/badge/Streamlit-dashboard-red)](https://streamlit.io)
+
+---
+
+## 🎨 UX Prototype (Google Stitch)
+
+Designed with [Google Stitch](https://stitch.withgoogle.com) — AI-powered UI prototyping tool.  
+Design system: dark theme, Primary Cyan `#00D4FF`, Inter typography — see [`docs/ux-prototype/DESIGN.md`](docs/ux-prototype/DESIGN.md).
+
+| Overview | EDA Report |
+|----------|-----------|
+| ![Overview](docs/ux-prototype/01-overview.png) | ![EDA](docs/ux-prototype/03-eda-report.png) |
+
+| Course Predictor | Downloads |
+|-----------------|-----------|
+| ![Predictor](docs/ux-prototype/02-course-predictor.png) | ![Downloads](docs/ux-prototype/04-downloads.png) |
+
+| Model Results |  |
+|--------------|--|
+| ![Model Results](docs/ux-prototype/05-model-results.png) | |
 
 ---
 
